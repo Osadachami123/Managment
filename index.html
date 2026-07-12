@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="si">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Money Management — Minute Trading</title>
+<style>
+  :root{
+    --bg: #0d1013;
+    --panel: #161a1f;
+    --panel-2: #1d222a;
+    --line: #262c35;
+    --text: #e7ebf0;
+    --muted: #8b95a3;
+    --accent: #2fd6c0;
+    --accent-dim: #1f8f80;
+    --win: #34c979;
+    --loss: #f2555a;
+    --warn: #f0a83f;
+    --mono: 'JetBrains Mono', 'SFMono-Regular', Consolas, Menlo, monospace;
+    --sans: -apple-system, 'Segoe UI', Roboto, Inter, sans-serif;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      radial-gradient(circle at 15% 0%, rgba(47,214,192,0.06), transparent 45%),
+      var(--bg);
+    color:var(--text);
+    font-family:var(--sans);
+    min-height:100vh;
+    padding:28px 16px 60px;
+  }
+  .wrap{max-width:780px;margin:0 auto;}
+
+  header{margin-bottom:26px;}
+  .eyebrow{
+    font-family:var(--mono);
+    font-size:11px;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+    color:var(--accent);
+    margin-bottom:8px;
+  }
+  h1{
+    font-size:26px;
+    margin:0 0 6px;
+    font-weight:700;
+    letter-spacing:-0.01em;
+  }
+  .sub{color:var(--muted);font-size:13.5px;line-height:1.5;}
+
+  .card{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:14px;
+    padding:20px;
+    margin-bottom:16px;
+  }
+  .card h2{
+    font-size:12px;
+    text-transform:uppercase;
+    letter-spacing:.1em;
+    color:var(--muted);
+    margin:0 0 16px;
+    font-weight:600;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+  }
+  .card h2 .note{font-size:10.5px;color:var(--muted);text-transform:none;letter-spacing:0;font-weight:400;}
+
+  .setup-row{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;}
+  .field{display:flex;flex-direction:column;gap:6px;flex:1;min-width:120px;}
+  .field label{font-size:11.5px;color:var(--muted);}
+  .field input{
+    background:var(--panel-2);
+    border:1px solid var(--line);
+    border-radius:8px;
+    color:var(--text);
+    font-family:var(--mono);
+    font-size:15px;
+    padding:9px 10px;
+    width:100%;
+  }
+  .field input:focus{outline:none;border-color:var(--accent);}
+  .field .hint{font-size:10.5px;color:var(--muted);}
+
+  button{
+    font-family:var(--sans);
+    font-weight:600;
+    border:none;
+    border-radius:9px;
+    padding:11px 18px;
+    cursor:pointer;
+    font-size:14px;
+    transition:transform .08s ease, opacity .15s ease;
+  }
+  button:active{transform:scale(0.97);}
+  button:disabled{opacity:.35;cursor:not-allowed;}
+  .btn-primary{background:var(--accent);color:#04211d;}
+  .btn-ghost{background:transparent;border:1px solid var(--line);color:var(--text);}
+  .btn-ghost:hover{border-color:var(--accent);}
+
+  .stat-grid{
+    display:grid;
+    grid-template-columns:repeat(2,1fr);
+    gap:12px;
+  }
+  @media(min-width:560px){.stat-grid{grid-template-columns:repeat(4,1fr);}}
+  .stat{
+    background:var(--panel-2);
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:12px 14px;
+    position:relative;
+  }
+  .stat .k{font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px;}
+  .stat .v{font-family:var(--mono);font-size:18px;font-weight:600;}
+  .v.pos{color:var(--win);}
+  .v.neg{color:var(--loss);}
+  .v.accent{color:var(--accent);}
+  .v.warn{color:var(--warn);}
+  .badge{
+    position:absolute;top:10px;right:10px;
+    font-size:9.5px;font-weight:700;text-transform:uppercase;
+    padding:2px 7px;border-radius:999px;
+    background:rgba(240,168,63,0.15);color:var(--warn);
+  }
+
+  .banner{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    padding:13px 16px;
+    border-radius:10px;
+    font-size:13.5px;
+    font-weight:600;
+    margin-bottom:16px;
+    border:1px solid transparent;
+  }
+  .banner.ok{background:rgba(47,214,192,0.09);border-color:rgba(47,214,192,0.35);color:var(--accent);}
+  .banner.stop{background:rgba(240,168,63,0.1);border-color:rgba(240,168,63,0.4);color:var(--warn);}
+  .banner.dead{background:rgba(242,85,90,0.1);border-color:rgba(242,85,90,0.4);color:var(--loss);}
+  .dot{width:8px;height:8px;border-radius:50%;background:currentColor;flex:none;flex-shrink:0;margin-top:2px;}
+
+  .action-row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:6px;}
+  .action-row button{flex:1;min-width:130px;}
+  .btn-win{background:var(--win);color:#06210f;}
+  .btn-loss{background:var(--loss);color:#2a0607;}
+  .foot-row{display:flex;justify-content:space-between;align-items:center;margin-top:14px;flex-wrap:wrap;gap:8px;}
+
+  .streak-row{display:flex;gap:8px;margin-bottom:14px;}
+  .streak-dot{
+    width:26px;height:26px;border-radius:7px;
+    display:flex;align-items:center;justify-content:center;
+    font-family:var(--mono);font-size:11px;font-weight:700;
+    background:var(--panel-2);border:1px solid var(--line);color:var(--muted);
+  }
+  .streak-dot.loss{background:rgba(242,85,90,0.18);border-color:rgba(242,85,90,0.5);color:var(--loss);}
+
+  table{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:12.5px;}
+  thead th{
+    text-align:left;
+    color:var(--muted);
+    font-weight:600;
+    text-transform:uppercase;
+    font-size:10.5px;
+    letter-spacing:.06em;
+    padding:6px 8px;
+    border-bottom:1px solid var(--line);
+  }
+  tbody td{padding:8px;border-bottom:1px solid var(--line);}
+  tbody tr:last-child td{border-bottom:none;}
+  .tag{
+    display:inline-block;
+    padding:2px 8px;
+    border-radius:999px;
+    font-size:10.5px;
+    font-weight:700;
+    text-transform:uppercase;
+  }
+  .tag.win{background:rgba(52,201,121,0.15);color:var(--win);}
+  .tag.loss{background:rgba(242,85,90,0.15);color:var(--loss);}
+  .tag.rec{background:rgba(240,168,63,0.15);color:var(--warn);margin-left:5px;}
+  .empty{color:var(--muted);font-size:13px;text-align:center;padding:22px 0;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="eyebrow">Risk Engine · Minute Trades</div>
+    <h1>Money Management</h1>
+    <div class="sub">Account balance එක දාලා, settings adjust කරගෙන trade log කරන්න. Loss එකකට පස්සෙ stake එක recovery විදියට වැඩි වෙනවා, දිගට losses 2ක් ආවොත් trading auto-stop වෙනවා.</div>
+  </header>
+
+  <!-- SETTINGS -->
+  <div class="card">
+    <h2>Setup</h2>
+    <div class="setup-row" style="margin-bottom:14px;">
+      <div class="field" style="flex:2;min-width:180px;">
+        <label>Account Balance ($)</label>
+        <input type="number" id="startBalance" placeholder="e.g. 50" step="0.01" min="0">
+      </div>
+      <button class="btn-primary" id="startBtn" style="height:41px;">Start / Reset Session</button>
+    </div>
+    <div class="setup-row" style="margin-bottom:14px;">
+      <div class="field">
+        <label>Daily Profit Target</label>
+        <input type="number" id="targetPct" value="10" step="0.5" min="0.5">
+        <div class="hint">% of day-start balance</div>
+      </div>
+      <div class="field">
+        <label>Risk per Trade</label>
+        <input type="number" id="riskPct" value="5" step="0.5" min="0.5">
+        <div class="hint">% of current balance</div>
+      </div>
+      <div class="field">
+        <label>Minimum Stake ($)</label>
+        <input type="number" id="minStake" value="0.35" step="0.01" min="0.01">
+        <div class="hint">floor amount</div>
+      </div>
+      <div class="field">
+        <label>Payout on Win</label>
+        <input type="number" id="payoutPct" value="92.42" step="0.01" min="1">
+        <div class="hint">% profit of stake</div>
+      </div>
+    </div>
+    <div class="setup-row">
+      <div class="field">
+        <label>Martingale Multiplier</label>
+        <input type="number" id="martFactor" value="2.08" step="0.01" min="1">
+        <div class="hint">loss එකකට පස්සෙ stake × මේ අගය</div>
+      </div>
+      <div class="field">
+        <label>Max Losses in a Row</label>
+        <input type="number" id="maxLosses" value="2" step="1" min="1">
+        <div class="hint">මේකට ගියාම trading stop</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- BANNER -->
+  <div id="banner" class="banner ok" style="display:none;">
+    <span class="dot"></span>
+    <span id="bannerText"></span>
+  </div>
+
+  <!-- STATS -->
+  <div class="card" id="statsCard" style="display:none;">
+    <h2>Today</h2>
+    <div class="stat-grid">
+      <div class="stat">
+        <div class="k">Current Balance</div>
+        <div class="v accent" id="statBalance">$0.00</div>
+      </div>
+      <div class="stat">
+        <div class="k">Today P/L</div>
+        <div class="v" id="statPL">$0.00</div>
+      </div>
+      <div class="stat">
+        <div class="k">Target Balance</div>
+        <div class="v" id="statTarget">$0.00</div>
+      </div>
+      <div class="stat">
+        <div class="k">Next Stake</div>
+        <div class="v warn" id="statStake">$0.00</div>
+        <div class="badge" id="stakeBadge" style="display:none;">Recovery</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ACTIONS -->
+  <div class="card" id="actionsCard" style="display:none;">
+    <h2>Record Trade <span class="note" id="streakNote"></span></h2>
+    <div class="streak-row" id="streakRow"></div>
+    <div class="action-row">
+      <button class="btn-win" id="winBtn">✓ Won</button>
+      <button class="btn-loss" id="lossBtn">✕ Lost</button>
+    </div>
+    <div class="foot-row">
+      <span class="sub" id="tradeCountText">0 trades · 0% win rate</span>
+      <button class="btn-ghost" id="newDayBtn">Start New Day</button>
+    </div>
+  </div>
+
+  <!-- LOG -->
+  <div class="card" id="logCard" style="display:none;">
+    <h2>Trade Log</h2>
+    <div id="logWrap">
+      <div class="empty">Trade record එකක් තවම නෑ.</div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+(function(){
+  const $ = id => document.getElementById(id);
+
+  let state = {
+    started:false,
+    balance:0,
+    dayStart:0,
+    trades:[], // {n, stake, result, pl, balanceAfter, recovery}
+    consecutiveLosses:0,
+    baseStakeAtStreakStart:0,
+  };
+
+  function fmt(n){
+    const sign = n < 0 ? '-' : '';
+    return sign + '$' + Math.abs(n).toFixed(2);
+  }
+
+  function settings(){
+    return {
+      targetPct: parseFloat($('targetPct').value) || 0,
+      riskPct: parseFloat($('riskPct').value) || 0,
+      minStake: parseFloat($('minStake').value) || 0,
+      payoutPct: parseFloat($('payoutPct').value) || 0,
+      martFactor: parseFloat($('martFactor').value) || 1,
+      maxLosses: parseInt($('maxLosses').value) || 1,
+    };
+  }
+
+  function baseStake(){
+    const s = settings();
+    return Math.max(state.balance * (s.riskPct/100), s.minStake);
+  }
+
+  function computeStake(){
+    const s = settings();
+    if(state.consecutiveLosses === 0){
+      return baseStake();
+    }
+    // martingale: escalate off the base stake at the start of this losing streak
+    let stake = state.baseStakeAtStreakStart;
+    for(let i=0;i<state.consecutiveLosses;i++){
+      stake = stake * s.martFactor;
+    }
+    return stake;
+  }
+
+  function targetBalance(){
+    const s = settings();
+    return state.dayStart * (1 + s.targetPct/100);
+  }
+
+  function targetReached(){
+    return state.balance >= targetBalance() - 1e-9;
+  }
+
+  function lossLimitHit(){
+    const s = settings();
+    return state.consecutiveLosses >= s.maxLosses;
+  }
+
+  function render(){
+    if(!state.started){
+      $('statsCard').style.display='none';
+      $('actionsCard').style.display='none';
+      $('logCard').style.display='none';
+      $('banner').style.display='none';
+      return;
+    }
+
+    $('statsCard').style.display='block';
+    $('actionsCard').style.display='block';
+    $('logCard').style.display='block';
+
+    const s = settings();
+    const pl = state.balance - state.dayStart;
+    const plPct = state.dayStart>0 ? (pl/state.dayStart*100) : 0;
+    const stake = computeStake();
+    const tgt = targetBalance();
+    const insufficientFunds = stake > state.balance;
+
+    $('statBalance').textContent = fmt(state.balance);
+    $('statPL').textContent = fmt(pl) + ' (' + (plPct>=0?'+':'') + plPct.toFixed(1) + '%)';
+    $('statPL').className = 'v ' + (pl>0?'pos':pl<0?'neg':'');
+    $('statTarget').textContent = fmt(tgt);
+    $('statStake').textContent = fmt(stake);
+    $('stakeBadge').style.display = state.consecutiveLosses>0 ? 'inline-block' : 'none';
+    $('statStake').className = 'v ' + (state.consecutiveLosses>0 ? 'warn' : 'accent');
+
+    // wins/losses stats
+    const wins = state.trades.filter(t=>t.result==='win').length;
+    const losses = state.trades.filter(t=>t.result==='loss').length;
+    const winRate = state.trades.length>0 ? (wins/state.trades.length*100) : 0;
+    $('tradeCountText').textContent = state.trades.length + ' trades · ' + winRate.toFixed(0) + '% win rate (' + wins + 'W / ' + losses + 'L)';
+
+    // streak dots
+    let dots = '';
+    for(let i=0;i<s.maxLosses;i++){
+      const filled = i < state.consecutiveLosses;
+      dots += '<div class="streak-dot'+(filled?' loss':'')+'">'+(filled?'✕':(i+1))+'</div>';
+    }
+    $('streakRow').innerHTML = dots;
+    $('streakNote').textContent = state.consecutiveLosses>0 ? '(' + state.consecutiveLosses + '/' + s.maxLosses + ' losses in a row)' : '';
+
+    const dead = state.balance <= 0;
+    const stopTarget = targetReached();
+    const stopStreak = lossLimitHit();
+    const stopFunds = insufficientFunds && !dead;
+
+    $('banner').style.display = 'flex';
+    if(dead){
+      $('banner').className = 'banner dead';
+      $('bannerText').textContent = 'Balance එක ඉවරයි — trading නවත්තලා balance එක නැවත review කරන්න.';
+    } else if(stopStreak){
+      $('banner').className = 'banner dead';
+      $('bannerText').textContent = 'දිගට losses ' + s.maxLosses + 'ක් ආවා — අද තව trade කරන්න එපා. "Start New Day" එබලා විවේකයක් අරන් හෙට continue කරන්න.';
+    } else if(stopTarget){
+      $('banner').className = 'banner stop';
+      $('bannerText').textContent = 'Daily target (' + s.targetPct + '%) ළඟට ආවා — අද trading නවත්තන්න. "Start New Day" එබලා හෙට continue කරන්න.';
+    } else if(stopFunds){
+      $('banner').className = 'banner dead';
+      $('bannerText').textContent = 'Recovery stake එක (' + fmt(stake) + ') balance එකට වඩා වැඩියි — trading නවත්තන්න.';
+    } else {
+      $('banner').className = 'banner ok';
+      $('bannerText').textContent = 'Trading active — next stake ' + fmt(stake) + (state.consecutiveLosses>0 ? ' (recovery)' : '') + '.';
+    }
+
+    const blocked = dead || stopTarget || stopStreak || stopFunds;
+    $('winBtn').disabled = blocked;
+    $('lossBtn').disabled = blocked;
+
+    // log
+    if(state.trades.length===0){
+      $('logWrap').innerHTML = '<div class="empty">Trade record එකක් තවම නෑ.</div>';
+    } else {
+      let rows = state.trades.slice().reverse().map(t => {
+        const tagClass = t.result==='win' ? 'win' : 'loss';
+        const tagLabel = t.result==='win' ? 'Won' : 'Lost';
+        const plClass = t.pl>=0 ? 'pos' : 'neg';
+        const recTag = t.recovery ? '<span class="tag rec">Recovery</span>' : '';
+        return '<tr>'+
+          '<td>#'+t.n+'</td>'+
+          '<td>'+fmt(t.stake)+'</td>'+
+          '<td><span class="tag '+tagClass+'">'+tagLabel+'</span>'+recTag+'</td>'+
+          '<td class="'+plClass+'">'+fmt(t.pl)+'</td>'+
+          '<td>'+fmt(t.balanceAfter)+'</td>'+
+        '</tr>';
+      }).join('');
+      $('logWrap').innerHTML = '<table><thead><tr><th>#</th><th>Stake</th><th>Result</th><th>P/L</th><th>Balance</th></tr></thead><tbody>'+rows+'</tbody></table>';
+    }
+  }
+
+  function recordTrade(won){
+    const s = settings();
+    if(state.balance<=0 || targetReached() || lossLimitHit()) return;
+    const stake = computeStake();
+    if(stake > state.balance) return;
+
+    if(state.consecutiveLosses === 0){
+      state.baseStakeAtStreakStart = baseStake();
+    }
+
+    let pl;
+    if(won){
+      pl = stake * (s.payoutPct/100);
+    } else {
+      pl = -stake;
+    }
+    state.balance += pl;
+    if(state.balance < 0) state.balance = 0;
+
+    state.trades.push({
+      n: state.trades.length+1,
+      stake: stake,
+      result: won ? 'win' : 'loss',
+      pl: pl,
+      balanceAfter: state.balance,
+      recovery: state.consecutiveLosses>0
+    });
+
+    if(won){
+      state.consecutiveLosses = 0;
+    } else {
+      state.consecutiveLosses += 1;
+    }
+
+    render();
+  }
+
+  $('startBtn').addEventListener('click', function(){
+    const val = parseFloat($('startBalance').value);
+    if(isNaN(val) || val<=0){
+      $('startBalance').focus();
+      return;
+    }
+    state.started = true;
+    state.balance = val;
+    state.dayStart = val;
+    state.trades = [];
+    state.consecutiveLosses = 0;
+    state.baseStakeAtStreakStart = 0;
+    render();
+  });
+
+  $('winBtn').addEventListener('click', ()=>recordTrade(true));
+  $('lossBtn').addEventListener('click', ()=>recordTrade(false));
+
+  $('newDayBtn').addEventListener('click', function(){
+    state.dayStart = state.balance;
+    state.trades = [];
+    state.consecutiveLosses = 0;
+    state.baseStakeAtStreakStart = 0;
+    render();
+  });
+
+  ['targetPct','riskPct','minStake','payoutPct','martFactor','maxLosses'].forEach(id=>{
+    $(id).addEventListener('input', render);
+  });
+
+})();
+</script>
+</body>
+</html>
